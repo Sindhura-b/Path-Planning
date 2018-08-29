@@ -71,6 +71,8 @@ getXY - Includes non-linear transformation of frenet coordinates to cartersian c
 
 In the main function, highwaymap.csv file is loaded to get the localization data that includes our car's cartesian co-ordinates, Frenet co-ordinates, speed and waypoints. It also contains sensor fusion data that provides position information of other cars. Simulator receives path planning data in the form of a list of 50 points containing 'next_x_vals' and 'next_y_vals' to be followed by the car. 
 
+<img src="./Udacity.png"> 
+
 In order to plan a path, we should first predict what the other cars in our field of view are doing. This can be known using telemetry and sensor fusion data. In each simulator cycle, we iterate over sensor fusion data from each car and determine their lane of travel. Each lane is 4 meters wide and origin of 'd' coordinate is located at the median of the road. On the right side of median line, the road is further divided into 3 lanes, where the left most is assumed to be lane 0, with the right most being lane 2. For example, if the 'd' coordinate of a car from lane 0 lies between 0 and 4, it belongs to lane 0. 
 
 Once the car's lane is known, we are interested to know if the car is in our lane, to the left or to the right. The cars that effect out path planning are the ones that are closer to us. So, we are particularly interested in the cars that are within 30m distance ahead of us in all lanes and within 20m distance in left and right lanes. In the current lane, the position information of the cars that are behind us is not very important. However, the cars that are behind our car in left and right lanes are to be taken into account as they can effect our car's behavior while preparing for a lane change.
@@ -81,4 +83,4 @@ After behavior planning, we have the reference speed which the car should follow
 
 The car is able to succesfully travel for 4.32 miles without any collisions and stays within the limits of acceleration and jerk.
 
-<img src="./Udacity.png" width="450" height="350"> 
+
