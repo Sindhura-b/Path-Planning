@@ -5,7 +5,7 @@ Self-Driving Car Engineer Nanodegree Program
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).
 
 ### Goals
-In this project your goal is to safely navigate around a virtual highway with other traffic that is driving +-10 MPH of the 50 MPH speed limit. You will be provided the car's localization and sensor fusion data, there is also a sparse map list of waypoints around the highway. The car should try to go as close as possible to the 50 MPH speed limit, which means passing slower traffic when possible, note that other cars will try to change lanes too. The car should avoid hitting other cars at all cost as well as driving inside of the marked road lanes at all times, unless going from one lane to another. The car should be able to make one complete loop around the 6946m highway. Since the car is trying to go 50 MPH, it should take a little over 5 minutes to complete 1 loop. Also the car should not experience total acceleration over 10 m/s^2 and jerk that is greater than 10 m/s^3.
+The goal of this project is to safely navigate around a virtual highway with other traffic that is driving +-10 MPH of the 50 MPH speed limit. We are provided the car's localization and sensor fusion data, there is also a sparse map list of waypoints around the highway. The car should try to go as close as possible to the 50 MPH speed limit, which means passing slower traffic when possible, note that other cars will try to change lanes too. The car should avoid hitting other cars at all cost as well as driving inside of the marked road lanes at all times, unless going from one lane to another. The car should be able to make one complete loop around the 6946m highway. Since the car is trying to go 50 MPH, it should take a little over 5 minutes to complete 1 loop. Also the car should not experience total acceleration over 10 m/s^2 and jerk that is greater than 10 m/s^3. 
 
 #### The map of the highway is in data/highway_map.txt
 Each waypoint in the list contains  [x,y,s,dx,dy] values. x and y are the waypoint's map coordinate position, the s value is the distance along the road to get to that waypoint in meters, the dx and dy values define the unit normal vector pointing outward of the highway loop.
@@ -60,81 +60,23 @@ the path has processed since last time.
 
 2. There will be some latency between the simulator running and the path planner returning a path, with optimized code usually its not very long maybe just 1-3 time steps. During this delay the simulator will continue using points that it was last given, because of this its a good idea to store the last points you have used so you can have a smooth transition. previous_path_x, and previous_path_y can be helpful for this transition since they show the last points given to the simulator controller with the processed points already removed. You would either return a path that extends this previous path or make sure to create a new path that has a smooth transition with this last path.
 
-## Tips
+## Implementation
 
-A really helpful resource for doing this project and creating smooth trajectories was using http://kluge.in-chemnitz.de/opensource/spline/, the spline function is in a single hearder file is really easy to use.
+We are provided with 'main.cpp' file that contains a number of helper functions such as:
+distance - calculates the distance between two points
+ClosestWayPoint - Picks a waypoint closest to the car from a map of waypoints
+NextWayPoint - Picks a waypoint that is closest to the car and is infront of the car
+getFrenet - Tranforms the cartesian coordinates of the car into frenet coordinates that make the path planning easier
+getXY - Includes non-linear transformation of frenet coordinates to cartersian coordinates. This function is inverse of getFrenet.
 
----
+In the main function, highwaymap.csv file is loaded to get the localization data that includes our car's cartesian co-ordinates, Frenet co-ordinates, speed and waypoints. It also contains sensor fusion data that provides position information of other cars. Simulator receives path planning data in the form of a list of 50 points containing 'next_x_vals' and 'next_y_vals' to be followed by the car. 
 
-## Dependencies
+In order to plan a path, we should first predict what the other cars in our field of view are doing. This can be known using telemetry and sensor fusion data. In each simulator cycle, we iterate over sensor fusion data from each car and determine their lane of travel. Each lane is 4 meters wide and origin of 'd' coordinate is located at the median of the road. On the right side of median line, the road is further divided into 3 lanes, where the left most is assumed to be lane 0, with the right most being lane 2. For example, if the 'd' coordinate of a car from lane 0 lies between 0 and 4, it belongs to lane 0. 
 
-* cmake >= 3.5
-  * All OSes: [click here for installation instructions](https://cmake.org/install/)
-* make >= 4.1
-  * Linux: make is installed by default on most Linux distros
-  * Mac: [install Xcode command line tools to get make](https://developer.apple.com/xcode/features/)
-  * Windows: [Click here for installation instructions](http://gnuwin32.sourceforge.net/packages/make.htm)
-* gcc/g++ >= 5.4
-  * Linux: gcc / g++ is installed by default on most Linux distros
-  * Mac: same deal as make - [install Xcode command line tools]((https://developer.apple.com/xcode/features/)
-  * Windows: recommend using [MinGW](http://www.mingw.org/)
-* [uWebSockets](https://github.com/uWebSockets/uWebSockets)
-  * Run either `install-mac.sh` or `install-ubuntu.sh`.
-  * If you install from source, checkout to commit `e94b6e1`, i.e.
-    ```
-    git clone https://github.com/uWebSockets/uWebSockets 
-    cd uWebSockets
-    git checkout e94b6e1
-    ```
+Once the car's lane is known, we are interested to know if the car is in our lane, to the left or to the right. The cars that effect out path planning are the ones that are closer to us. So, we are particularly interested in the cars that are within 30m distance ahead of us in all lanes and within 20m distance in left and right lanes. In the current lane, the position information of the cars that are behind us is not very important. However, the cars that are behind our car in left and right lanes are to be taken into account as they can effect our car's behavior while preparing for a lane change.
 
-## Editor Settings
+The next step is to determine the behavior of our car (change in velocity & lanes) according to the prediction information from sensor fusion data. If there is a car ahead of us in the current lane and is within the range specified above, we could either make a lane change or stay in the current lane and change our speed according to the speed of the car ahead of us. Also it is found from some experimentation that changing lanes at velocities close to 50 is not violating the constraints of jerk and acceleration. So, I have decided to perform lane change first if possible otherwise I would stay in the current lane and change my car speed. Also, making the lane change at near speed limit velocity ensures that we can reach the goal in lesser time as long as the constraints are not violated. If the vehicle ahead of us is moving at a speed lower than our car, we decrease the speed of our car. If not, we will accelerate till our speed matches the speed of the car ahead of us. Also, if the car ahead is very slow, we decelerate at a higher rate. In case, there is no car in front of us, we try to maintain the speed at near 50MPH.
 
-We've purposefully kept editor configuration files out of this repo in order to
-keep it as simple and environment agnostic as possible. However, we recommend
-using the following settings:
+After behavior planning, we have the reference speed which the car should follow and the lane in which the car should stay. This information along with the previous path points data is utilized to generate trajectory. This is done using spline function, which is coded in 'spline.h' header spline. To generate a smooth spline curve, we utilize 5 points, of which 2 are the previous paths end points and other 3 are the points located at distances of 30m, 60m and 90m ahead of the current car location along s-coordinate. In order to get the XY coordinates of those 3 points ahead of us, getXY function along with lane information is used. Equally spaced co-ordinates for a distance of 30m are obtained from the car's reference velocity. Finally, the 50 points that describe the car's trajectory are generated using the left over points from previous trajectory and the co-ordinates from spline curve. Using coordinates from previous points ensures that there is a smooth transition from cycle to cycle. 
 
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
-
-## Code Style
-
-Please (do your best to) stick to [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html).
-
-## Project Instructions and Rubric
-
-Note: regardless of the changes you make, your project must be buildable using
-cmake and make!
-
-
-## Call for IDE Profiles Pull Requests
-
-Help your fellow students!
-
-We decided to create Makefiles with cmake to keep this project as platform
-agnostic as possible. Similarly, we omitted IDE profiles in order to ensure
-that students don't feel pressured to use one IDE or another.
-
-However! I'd love to help people get up and running with their IDEs of choice.
-If you've created a profile for an IDE that you think other students would
-appreciate, we'd love to have you add the requisite profile files and
-instructions to ide_profiles/. For example if you wanted to add a VS Code
-profile, you'd add:
-
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
-
-The README should explain what the profile does, how to take advantage of it,
-and how to install it.
-
-Frankly, I've never been involved in a project with multiple IDE profiles
-before. I believe the best way to handle this would be to keep them out of the
-repo root to avoid clutter. My expectation is that most profiles will include
-instructions to copy files to a new location to get picked up by the IDE, but
-that's just a guess.
-
-One last note here: regardless of the IDE used, every submitted project must
-still be compilable with cmake and make./
-
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
-
+The car is able to succesfully travel for 4.32 miles without any collisions and stays within the limits of acceleration and jerk.
