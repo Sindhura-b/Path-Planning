@@ -71,7 +71,7 @@ getXY - Includes non-linear transformation of frenet coordinates to cartersian c
 
 In the main function, highwaymap.csv file is loaded to get the localization data that includes our car's cartesian co-ordinates, Frenet co-ordinates, speed and waypoints. It also contains sensor fusion data that provides position information of other cars. Simulator receives path planning data in the form of a list of 50 points containing 'next_x_vals' and 'next_y_vals' to be followed by the car. 
 
-<img src="./Udacity.PNG"> 
+<img src="./udacity.PNG"> 
 
 In order to plan a path, we should first predict what the other cars in our field of view are doing. This can be known using telemetry and sensor fusion data. In each simulator cycle, we iterate over sensor fusion data from each car and determine their lane of travel. Each lane is 4 meters wide and origin of 'd' coordinate is located at the median of the road. On the right side of median line, the road is further divided into 3 lanes, where the left most is assumed to be lane 0, with the right most being lane 2. For example, if the 'd' coordinate of a car from lane 0 lies between 0 and 4, it belongs to lane 0. 
 
